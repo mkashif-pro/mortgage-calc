@@ -6,6 +6,7 @@
     <title>Rent vs. Buy Analyzer | Premium Real Estate Tool</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
         :root {
@@ -13,6 +14,7 @@
             --dark: #0f172a;
             --light: #f8fafc;
             --success: #10b981;
+            --danger: #ef4444;
         }
         
         body {
@@ -111,8 +113,6 @@
             margin: 10px 0;
         }
 
-        .wealth-text { color: var(--success); font-weight: bold; font-size: 0.9rem; margin-bottom: 15px; display: block;}
-
         .whatsapp-btn {
             background: #25D366;
             color: white;
@@ -123,6 +123,14 @@
             font-weight: bold;
             margin-top: 15px;
             border: 1px solid rgba(0,0,0,0.1);
+        }
+        
+        /* CHART CONTAINER */
+        .chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+            margin-top: 20px;
         }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -158,7 +166,11 @@
             <span style="font-size:0.9rem; color:#64748b; text-transform:uppercase; letter-spacing:1px;">Est. Monthly Payment</span>
             <span class="big-number" id="mortgageDisplay">$0</span>
             
-            <p id="comparisonText" style="line-height: 1.6; font-size: 0.95rem; margin-bottom:20px;">
+            <div class="chart-container">
+                <canvas id="wealthChart"></canvas>
+            </div>
+            
+            <p id="comparisonText" style="line-height: 1.6; font-size: 0.95rem; margin-top:20px; margin-bottom:20px; text-align: left;">
                 ...
             </p>
 
@@ -173,26 +185,31 @@
     </div>
 
     <script>
+        let myChart = null;
+
         function calculate() {
             // 1. Get Inputs
             let rent = parseFloat(document.getElementById('rent').value);
             let price = parseFloat(document.getElementById('price').value);
             let rate = parseFloat(document.getElementById('rate').value);
 
-            // 2. Logic (30 Year Fixed Mortgage Formula)
-            let principal = price * 0.965; // Assuming 3.5% down payment (FHA loan standard)
+            // 2. Logic (30 Year Fixed)
+            let principal = price * 0.965; // 3.5% down
             let monthlyInterest = rate / 100 / 12;
             let payments = 30 * 12;
 
             let x = Math.pow(1 + monthlyInterest, payments);
             let monthlyMortgage = (principal * x * monthlyInterest) / (x - 1);
-            
-            // Add taxes & insurance (approx 1.2% of price / 12)
             let taxes = (price * 0.012) / 12;
             let totalMonthly = monthlyMortgage + taxes;
 
-            // 3. Equity Logic (Wealth Creation)
-            let equityIn5Years = (price * 0.15); // Rough appreciation estimate
+            // 3. Wealth Projection (10 Years)
+            // Renting: Money lost = Rent * 12 * 10
+            let rentLost = rent * 12 * 10;
+            // Buying: Equity = (Price * 1.03^10) - Remaining Loan (rough estimate)
+            let futureValue = price * Math.pow(1.03, 10); // 3% appreciation
+            let remainingLoan = principal * 0.80; // Paid down some principal
+            let equityBuilt = futureValue - remainingLoan;
 
             // 4. Update UI
             document.getElementById('mortgageDisplay').innerText = "$" + Math.round(totalMonthly).toLocaleString();
@@ -201,18 +218,70 @@
             let msg = "";
             
             if (diff < 200) {
-                msg = `For only <b>$${Math.round(diff)} more</b> per month, you could OWN this asset instead of renting.`;
+                msg = `✅ <b>Amazing Deal:</b> Buying costs almost the same as renting, but you build equity!`;
             } else {
-                msg = `Yes, it costs more than rent, but you stop paying your landlord's mortgage and start building <b>$${Math.round(equityIn5Years).toLocaleString()}</b> in equity over 5 years.`;
+                msg = `🏠 <b>Wealth Analysis:</b> Yes, buying costs more monthly, but look at the chart. In 10 years, renting burns <b>$${(rentLost/1000).toFixed(0)}k</b>. Buying creates <b>$${(equityBuilt/1000).toFixed(0)}k</b> in family wealth.`;
             }
 
             document.getElementById('comparisonText').innerHTML = msg;
 
-            // 5. Update WhatsApp Link (The Sale)
-            let waMsg = `Hi, I used the calculator. I pay $${rent} in rent and want to buy a house around $${price}. Can you help?`;
+            // 5. Update WhatsApp Link
+            let waMsg = `Hi, I used the calculator. Rent: $${rent}, House Price: $${price}. I want to stop renting.`;
             document.getElementById('whatsappLink').href = `https://wa.me/?text=${encodeURIComponent(waMsg)}`;
 
             document.getElementById('result').style.display = "block";
+
+            // 6. RENDER THE CHART
+            renderChart(rentLost, equityBuilt);
+        }
+
+        function renderChart(rentLost, equityBuilt) {
+            const ctx = document.getElementById('wealthChart').getContext('2d');
+            
+            if (myChart) {
+                myChart.destroy(); // Clear old chart
+            }
+
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Renting (10 Yrs)', 'Buying (10 Yrs)'],
+                    datasets: [{
+                        label: 'Financial Impact ($)',
+                        data: [rentLost, equityBuilt],
+                        backgroundColor: [
+                            'rgba(239, 68, 68, 0.7)', // Red for Rent
+                            'rgba(212, 175, 55, 0.8)'  // Gold for Buy
+                        ],
+                        borderColor: [
+                            'rgba(239, 68, 68, 1)',
+                            'rgba(212, 175, 55, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        title: {
+                            display: true,
+                            text: '10-Year Wealth Projection',
+                            color: '#1e293b',
+                            font: { size: 16 }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) { return '$' + value/1000 + 'k'; }
+                            }
+                        }
+                    }
+                }
+            });
         }
     </script>
 
