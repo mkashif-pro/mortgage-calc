@@ -58,6 +58,20 @@
             box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
 
+        /* CURRENCY DROPDOWN */
+        .currency-selector {
+            width: 100%;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: var(--dark);
+            color: var(--gold);
+            border: 1px solid var(--gold);
+            border-radius: 8px;
+            font-weight: bold;
+            text-align: center;
+            cursor: pointer;
+        }
+
         .input-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; font-size: 0.9rem; color: #94a3b8; }
         
@@ -125,7 +139,6 @@
             border: 1px solid rgba(0,0,0,0.1);
         }
         
-        /* CHART CONTAINER */
         .chart-container {
             position: relative;
             height: 250px;
@@ -134,7 +147,6 @@
         }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
         .footer { font-size: 0.7rem; color: #475569; margin-top: 30px; text-align: center; }
     </style>
 </head>
@@ -145,145 +157,137 @@
 
     <div class="container">
         
+        <select id="currency" class="currency-selector" onchange="updateLabels()">
+            <option value="AED">🇦🇪 AED (Dirhams)</option>
+            <option value="USD">🇺🇸 USD (Dollars)</option>
+            <option value="PKR">🇵🇰 PKR (Rupees)</option>
+            <option value="GBP">🇬🇧 GBP (Pounds)</option>
+        </select>
+
         <div class="input-group">
-            <label>Current Monthly Rent ($)</label>
-            <input type="number" id="rent" value="1500" placeholder="e.g. 1500">
+            <label id="rentLabel">Current Monthly Rent</label>
+            <input type="number" id="rent" value="5000" placeholder="e.g. 5000">
         </div>
 
         <div class="input-group">
-            <label>Target House Price ($)</label>
-            <input type="number" id="price" value="350000" placeholder="e.g. 350000">
+            <label id="priceLabel">Target Property Price</label>
+            <input type="number" id="price" value="1500000" placeholder="e.g. 1500000">
         </div>
 
         <div class="input-group">
             <label>Interest Rate (%)</label>
-            <input type="number" id="rate" value="6.5" step="0.1">
+            <input type="number" id="rate" value="4.5" step="0.1">
         </div>
 
         <button class="btn" onclick="calculate()">Analyze Investment</button>
 
         <div id="result" class="result-box">
             <span style="font-size:0.9rem; color:#64748b; text-transform:uppercase; letter-spacing:1px;">Est. Monthly Payment</span>
-            <span class="big-number" id="mortgageDisplay">$0</span>
+            <span class="big-number" id="mortgageDisplay">0</span>
             
             <div class="chart-container">
                 <canvas id="wealthChart"></canvas>
             </div>
             
-            <p id="comparisonText" style="line-height: 1.6; font-size: 0.95rem; margin-top:20px; margin-bottom:20px; text-align: left;">
-                ...
-            </p>
+            <p id="comparisonText" style="line-height: 1.6; font-size: 0.95rem; margin-top:20px; margin-bottom:20px; text-align: left;">...</p>
 
-            <a id="whatsappLink" href="#" class="whatsapp-btn">
-                📲 Get Pre-Approved Now
-            </a>
+            <a id="whatsappLink" href="#" class="whatsapp-btn">📲 Get Pre-Approved Now</a>
         </div>
     </div>
 
-    <div class="footer">
-        Powered by [Your Agency Name] • Financial data is estimation only.
-    </div>
+    <div class="footer">Powered by [Your Agency Name] • Financial data is estimation only.</div>
 
     <script>
         let myChart = null;
 
+        function updateLabels() {
+            // Just clears the result if they switch currency so they don't get confused
+            document.getElementById('result').style.display = "none";
+        }
+
         function calculate() {
-            // 1. Get Inputs
+            // 1. Get Currency
+            const cur = document.getElementById('currency').value;
+            let symbol = "";
+            if(cur === 'AED') symbol = "AED ";
+            if(cur === 'USD') symbol = "$";
+            if(cur === 'PKR') symbol = "Rs ";
+            if(cur === 'GBP') symbol = "£";
+
+            // 2. Get Inputs
             let rent = parseFloat(document.getElementById('rent').value);
             let price = parseFloat(document.getElementById('price').value);
             let rate = parseFloat(document.getElementById('rate').value);
 
-            // 2. Logic (30 Year Fixed)
-            let principal = price * 0.965; // 3.5% down
+            // 3. Logic
+            let principal = price * 0.80; // Assuming 20% down for Dubai Standard
+            if(cur === 'USD') principal = price * 0.965; // 3.5% down for USA
+
             let monthlyInterest = rate / 100 / 12;
-            let payments = 30 * 12;
+            let payments = 25 * 12; // 25 years common in Dubai
 
             let x = Math.pow(1 + monthlyInterest, payments);
             let monthlyMortgage = (principal * x * monthlyInterest) / (x - 1);
-            let taxes = (price * 0.012) / 12;
-            let totalMonthly = monthlyMortgage + taxes;
+            let totalMonthly = monthlyMortgage + (price * 0.001); // Service charges estimate
 
-            // 3. Wealth Projection (10 Years)
-            // Renting: Money lost = Rent * 12 * 10
+            // 4. Wealth Projection
             let rentLost = rent * 12 * 10;
-            // Buying: Equity = (Price * 1.03^10) - Remaining Loan (rough estimate)
-            let futureValue = price * Math.pow(1.03, 10); // 3% appreciation
-            let remainingLoan = principal * 0.80; // Paid down some principal
+            let futureValue = price * Math.pow(1.04, 10); // 4% appreciation
+            let remainingLoan = principal * 0.70;
             let equityBuilt = futureValue - remainingLoan;
 
-            // 4. Update UI
-            document.getElementById('mortgageDisplay').innerText = "$" + Math.round(totalMonthly).toLocaleString();
+            // 5. Update UI
+            document.getElementById('mortgageDisplay').innerText = symbol + Math.round(totalMonthly).toLocaleString();
             
             let diff = totalMonthly - rent;
             let msg = "";
             
-            if (diff < 200) {
-                msg = `✅ <b>Amazing Deal:</b> Buying costs almost the same as renting, but you build equity!`;
+            if (diff < 0) {
+                msg = `✅ <b>Amazing Deal:</b> Buying is actually CHEAPER than renting! You save <b>${symbol}${Math.abs(Math.round(diff))}</b> per month.`;
             } else {
-                msg = `🏠 <b>Wealth Analysis:</b> Yes, buying costs more monthly, but look at the chart. In 10 years, renting burns <b>$${(rentLost/1000).toFixed(0)}k</b>. Buying creates <b>$${(equityBuilt/1000).toFixed(0)}k</b> in family wealth.`;
+                msg = `🏠 <b>Wealth Analysis:</b> By renting, you burn <b>${symbol}${(rentLost/1000).toFixed(0)}k</b> in 10 years. By buying, you create <b>${symbol}${(equityBuilt/1000).toFixed(0)}k</b> in wealth.`;
             }
 
             document.getElementById('comparisonText').innerHTML = msg;
 
-            // 5. Update WhatsApp Link
-            let waMsg = `Hi, I used the calculator. Rent: $${rent}, House Price: $${price}. I want to stop renting.`;
+            // 6. Update WhatsApp
+            let waMsg = `Hi, I used your calculator. I'm looking at a property around ${symbol}${price}. Can you help?`;
             document.getElementById('whatsappLink').href = `https://wa.me/?text=${encodeURIComponent(waMsg)}`;
 
             document.getElementById('result').style.display = "block";
 
-            // 6. RENDER THE CHART
-            renderChart(rentLost, equityBuilt);
+            // 7. Render Chart
+            renderChart(rentLost, equityBuilt, symbol);
         }
 
-        function renderChart(rentLost, equityBuilt) {
+        function renderChart(rentLost, equityBuilt, symbol) {
             const ctx = document.getElementById('wealthChart').getContext('2d');
-            
-            if (myChart) {
-                myChart.destroy(); // Clear old chart
-            }
+            if (myChart) myChart.destroy();
 
             myChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: ['Renting (10 Yrs)', 'Buying (10 Yrs)'],
+                    labels: ['Renting (Lost)', 'Buying (Gain)'],
                     datasets: [{
-                        label: 'Financial Impact ($)',
+                        label: '10-Year Impact',
                         data: [rentLost, equityBuilt],
-                        backgroundColor: [
-                            'rgba(239, 68, 68, 0.7)', // Red for Rent
-                            'rgba(212, 175, 55, 0.8)'  // Gold for Buy
-                        ],
-                        borderColor: [
-                            'rgba(239, 68, 68, 1)',
-                            'rgba(212, 175, 55, 1)'
-                        ],
-                        borderWidth: 1
+                        backgroundColor: ['#ef4444', '#d4af37'],
+                        borderWidth: 0,
+                        borderRadius: 5
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        title: {
-                            display: true,
-                            text: '10-Year Wealth Projection',
-                            color: '#1e293b',
-                            font: { size: 16 }
-                        }
-                    },
+                    plugins: { legend: { display: false } },
                     scales: {
                         y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) { return '$' + value/1000 + 'k'; }
-                            }
+                            ticks: { callback: function(value) { return symbol + value/1000 + 'k'; } }
                         }
                     }
                 }
             });
         }
     </script>
-
 </body>
 </html>
