@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rent vs. Buy Analyzer | Premium Real Estate Tool</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --gold: #d4af37;
+            --dark: #0f172a;
+            --light: #f8fafc;
+            --success: #10b981;
+        }
+        
+        body {
+            font-family: 'Lato', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: var(--light);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .luxury-badge {
+            color: var(--gold);
+            letter-spacing: 2px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--gold);
+            padding-bottom: 5px;
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.2rem;
+            margin: 10px 0;
+            text-align: center;
+            color: white;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        .input-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-size: 0.9rem; color: #94a3b8; }
+        
+        input {
+            width: 100%;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #334155;
+            border-radius: 10px;
+            color: white;
+            font-size: 1.1rem;
+            font-family: 'Lato', sans-serif;
+            box-sizing: border-box;
+            outline: none;
+            transition: 0.3s;
+        }
+        input:focus { border-color: var(--gold); }
+
+        .btn {
+            background: linear-gradient(45deg, #d4af37, #b4941f);
+            color: #000;
+            border: none;
+            padding: 18px;
+            width: 100%;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: transform 0.2s;
+        }
+        .btn:hover { transform: scale(1.02); }
+
+        .result-box {
+            display: none;
+            margin-top: 30px;
+            background: white;
+            color: var(--dark);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .big-number {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--dark);
+            font-family: 'Playfair Display', serif;
+            display: block;
+            margin: 10px 0;
+        }
+
+        .wealth-text { color: var(--success); font-weight: bold; font-size: 0.9rem; margin-bottom: 15px; display: block;}
+
+        .whatsapp-btn {
+            background: #25D366;
+            color: white;
+            text-decoration: none;
+            padding: 15px;
+            border-radius: 8px;
+            display: block;
+            font-weight: bold;
+            margin-top: 15px;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .footer { font-size: 0.7rem; color: #475569; margin-top: 30px; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <div class="luxury-badge">Real Estate Investment Tool</div>
+    <h1>Rent vs. Buy</h1>
+
+    <div class="container">
+        
+        <div class="input-group">
+            <label>Current Monthly Rent ($)</label>
+            <input type="number" id="rent" value="1500" placeholder="e.g. 1500">
+        </div>
+
+        <div class="input-group">
+            <label>Target House Price ($)</label>
+            <input type="number" id="price" value="350000" placeholder="e.g. 350000">
+        </div>
+
+        <div class="input-group">
+            <label>Interest Rate (%)</label>
+            <input type="number" id="rate" value="6.5" step="0.1">
+        </div>
+
+        <button class="btn" onclick="calculate()">Analyze Investment</button>
+
+        <div id="result" class="result-box">
+            <span style="font-size:0.9rem; color:#64748b; text-transform:uppercase; letter-spacing:1px;">Est. Monthly Payment</span>
+            <span class="big-number" id="mortgageDisplay">$0</span>
+            
+            <p id="comparisonText" style="line-height: 1.6; font-size: 0.95rem; margin-bottom:20px;">
+                ...
+            </p>
+
+            <a id="whatsappLink" href="#" class="whatsapp-btn">
+                📲 Get Pre-Approved Now
+            </a>
+        </div>
+    </div>
+
+    <div class="footer">
+        Powered by [Your Agency Name] • Financial data is estimation only.
+    </div>
+
+    <script>
+        function calculate() {
+            // 1. Get Inputs
+            let rent = parseFloat(document.getElementById('rent').value);
+            let price = parseFloat(document.getElementById('price').value);
+            let rate = parseFloat(document.getElementById('rate').value);
+
+            // 2. Logic (30 Year Fixed Mortgage Formula)
+            let principal = price * 0.965; // Assuming 3.5% down payment (FHA loan standard)
+            let monthlyInterest = rate / 100 / 12;
+            let payments = 30 * 12;
+
+            let x = Math.pow(1 + monthlyInterest, payments);
+            let monthlyMortgage = (principal * x * monthlyInterest) / (x - 1);
+            
+            // Add taxes & insurance (approx 1.2% of price / 12)
+            let taxes = (price * 0.012) / 12;
+            let totalMonthly = monthlyMortgage + taxes;
+
+            // 3. Equity Logic (Wealth Creation)
+            let equityIn5Years = (price * 0.15); // Rough appreciation estimate
+
+            // 4. Update UI
+            document.getElementById('mortgageDisplay').innerText = "$" + Math.round(totalMonthly).toLocaleString();
+            
+            let diff = totalMonthly - rent;
+            let msg = "";
+            
+            if (diff < 200) {
+                msg = `For only <b>$${Math.round(diff)} more</b> per month, you could OWN this asset instead of renting.`;
+            } else {
+                msg = `Yes, it costs more than rent, but you stop paying your landlord's mortgage and start building <b>$${Math.round(equityIn5Years).toLocaleString()}</b> in equity over 5 years.`;
+            }
+
+            document.getElementById('comparisonText').innerHTML = msg;
+
+            // 5. Update WhatsApp Link (The Sale)
+            let waMsg = `Hi, I used the calculator. I pay $${rent} in rent and want to buy a house around $${price}. Can you help?`;
+            document.getElementById('whatsappLink').href = `https://wa.me/?text=${encodeURIComponent(waMsg)}`;
+
+            document.getElementById('result').style.display = "block";
+        }
+    </script>
+
+</body>
+</html>
